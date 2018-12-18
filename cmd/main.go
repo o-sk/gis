@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/o-sk/gis"
@@ -32,7 +33,11 @@ func main() {
 	}
 
 	app.Action = func(conrext *cli.Context) error {
-		images := gis.Search(query)
+		images, err := gis.Search(query)
+		if err != nil {
+			fmt.Errorf(err.Error())
+			return nil
+		}
 		display(images)
 		return nil
 	}
