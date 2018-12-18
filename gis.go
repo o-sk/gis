@@ -1,16 +1,17 @@
 package gis
 
 import (
-	"fmt"
-	"io/ioutil"
+	"encoding/json"
 	"net/http"
 	"net/url"
+
+	"github.com/PuerkitoBio/goquery"
 )
 
 type Image struct {
-	Description string
-	Destination string
-	Source      string
+	Description string `json:"pt"`
+	Destination string `json:"ru"`
+	Source      string `json:"tu"`
 }
 
 const GOOGLE_URL = "https://www.google.com/search?&tbm=isch&q="
@@ -25,11 +26,16 @@ func Search(query string) ([]Image, error) {
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36")
 	resp, err := client.Do(req)
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("%#v", string(body))
-	images := []Image{}
+	images := make([]Image, 100)
+	doc.Find(".rg_bx.rg_di.rg_el.ivg-i").Each(func(i int, s *goquery.Selection) {
+		var image Image
+		meta := s.Find(".rg_meta.notranslate").Text()
+		json.Unmarshal([]byte(meta), &image)
+		images[i] = image
+	})
 	return images, nil
 }
