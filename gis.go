@@ -9,9 +9,11 @@ import (
 )
 
 type Image struct {
+	Cite        string `json:"rh"`
 	Description string `json:"pt"`
 	Destination string `json:"ru"`
-	Source      string `json:"tu"`
+	Source      string `json:"ou"`
+	Thumbnail   string `json:"tu"`
 }
 
 const GOOGLE_URL = "https://www.google.com/search?&tbm=isch&q="
