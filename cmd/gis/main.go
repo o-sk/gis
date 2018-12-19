@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/k0kubun/pp"
-
 	"github.com/o-sk/gis"
 	"github.com/urfave/cli"
 )
