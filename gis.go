@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"sync"
@@ -59,23 +60,24 @@ func Search(query string) ([]Image, error) {
 	return images, nil
 }
 
-func downloadRequest(image Image) DownloadResult {
+func downloadRequest(directory string, image Image) DownloadResult {
 	response, err := http.Get(image.Source)
 	if err != nil {
 		return DownloadResult{FileName: "", Image: image, Error: err}
 	}
 	defer response.Body.Close()
-	file, err := os.Create(image.ID)
+	filename := filepath.Join(directory, image.ID)
+	file, err := os.Create(filename)
 	if err != nil {
-		return DownloadResult{FileName: "", Image: image, Error: err}
+		return DownloadResult{FileName: filename, Image: image, Error: err}
 	}
 	defer file.Close()
 
 	io.Copy(file, response.Body)
-	return DownloadResult{FileName: "", Image: image, Error: nil}
+	return DownloadResult{FileName: filename, Image: image, Error: nil}
 }
 
-func Download(images []Image) []DownloadResult {
+func Download(directory, filename string, images []Image) []DownloadResult {
 	download := func(done <-chan interface{}, imageStream <-chan Image) <-chan DownloadResult {
 		downloadStream := make(chan DownloadResult)
 		go func() {
@@ -84,7 +86,7 @@ func Download(images []Image) []DownloadResult {
 				select {
 				case <-done:
 					return
-				case downloadStream <- downloadRequest(image):
+				case downloadStream <- downloadRequest(directory, image):
 				}
 			}
 		}()
@@ -134,6 +136,7 @@ func Download(images []Image) []DownloadResult {
 		return takeStream
 	}
 
+	baseFileName := filepath.Join(directory, filename)
 	imageStream := make(chan Image, len(images))
 	defer close(imageStream)
 	for _, image := range images {
@@ -162,8 +165,8 @@ func Download(images []Image) []DownloadResult {
 					downloadResult.Error = err
 				}
 			}
-			filename := "image" + strconv.Itoa(count) + "." + format
-			if err = os.Rename(downloadResult.Image.ID, filename); err != nil {
+			fn := baseFileName + strconv.Itoa(count) + "." + format
+			if err = os.Rename(downloadResult.FileName, fn); err != nil {
 				downloadResult.Error = err
 			} else {
 				downloadResult.FileName = filename
