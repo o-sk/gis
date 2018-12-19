@@ -2,15 +2,23 @@ package gis
 
 import (
 	"encoding/json"
+	"image"
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
+	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"runtime"
+	"strconv"
 	"sync"
 
 	"github.com/PuerkitoBio/goquery"
 )
 
 type Image struct {
+	ID          string `json:"id"`
 	Cite        string `json:"rh"`
 	Description string `json:"pt"`
 	Destination string `json:"ru"`
@@ -20,7 +28,8 @@ type Image struct {
 }
 
 type DownloadResult struct {
-	FilePath string
+	FileName string
+	Image    Image
 	Error    error
 }
 
@@ -50,18 +59,32 @@ func Search(query string) ([]Image, error) {
 	return images, nil
 }
 
+func downloadRequest(image Image) DownloadResult {
+	response, err := http.Get(image.Source)
+	if err != nil {
+		return DownloadResult{FileName: "", Image: image, Error: err}
+	}
+	defer response.Body.Close()
+	file, err := os.Create(image.ID)
+	if err != nil {
+		return DownloadResult{FileName: "", Image: image, Error: err}
+	}
+	defer file.Close()
+
+	io.Copy(file, response.Body)
+	return DownloadResult{FileName: "", Image: image, Error: nil}
+}
+
 func Download(images []Image) []DownloadResult {
 	download := func(done <-chan interface{}, imageStream <-chan Image) <-chan DownloadResult {
 		downloadStream := make(chan DownloadResult)
 		go func() {
 			defer close(downloadStream)
 			for image := range imageStream {
-				// TODO: Download processing
-				downloadResult := DownloadResult{FilePath: image.Description, Error: nil}
 				select {
 				case <-done:
 					return
-				case downloadStream <- downloadResult:
+				case downloadStream <- downloadRequest(image):
 				}
 			}
 		}()
@@ -126,8 +149,26 @@ func Download(images []Image) []DownloadResult {
 		downloaders[i] = download(done, imageStream)
 	}
 	downloadResults := make([]DownloadResult, len(images))
+	count := 1
 	for downloadResult := range take(done, fanIn(done, downloaders...), len(images)) {
+		var err error
+		format := downloadResult.Image.Extension
+		if format == "" {
+			f, _ := os.Open(downloadResult.Image.ID)
+			defer f.Close()
+			_, format, err = image.DecodeConfig(f)
+			if err != nil {
+				downloadResult.Error = err
+			}
+		}
+		filename := "image" + strconv.Itoa(count) + "." + format
+		if err = os.Rename(downloadResult.Image.ID, filename); err != nil {
+			downloadResult.Error = err
+		} else {
+			downloadResult.FileName = filename
+		}
 		downloadResults = append(downloadResults, downloadResult)
+		count++
 	}
 	return downloadResults
 }
