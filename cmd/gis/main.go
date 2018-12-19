@@ -32,6 +32,27 @@ func main() {
 			Destination: &query,
 		},
 	}
+	app.Commands = []cli.Command{
+		{
+			Name:    "download",
+			Aliases: []string{"d"},
+			Usage:   "download image file",
+			Action: func(c *cli.Context) error {
+				images, err := gis.Search(query)
+				if err != nil {
+					fmt.Errorf(err.Error())
+					return nil
+				}
+				results := gis.Download(images)
+				for _, result := range results {
+					if result.Error != nil {
+						fmt.Errorf(result.Error.Error())
+					}
+				}
+				return nil
+			},
+		},
+	}
 
 	app.Action = func(conrext *cli.Context) error {
 		images, err := gis.Search(query)
