@@ -151,21 +151,23 @@ func Download(images []Image) []DownloadResult {
 	downloadResults := make([]DownloadResult, len(images))
 	count := 1
 	for downloadResult := range take(done, fanIn(done, downloaders...), len(images)) {
-		var err error
-		format := downloadResult.Image.Extension
-		if format == "" {
-			f, _ := os.Open(downloadResult.Image.ID)
-			defer f.Close()
-			_, format, err = image.DecodeConfig(f)
-			if err != nil {
-				downloadResult.Error = err
+		if downloadResult.Error == nil {
+			var err error
+			format := downloadResult.Image.Extension
+			if format == "" {
+				f, _ := os.Open(downloadResult.Image.ID)
+				defer f.Close()
+				_, format, err = image.DecodeConfig(f)
+				if err != nil {
+					downloadResult.Error = err
+				}
 			}
-		}
-		filename := "image" + strconv.Itoa(count) + "." + format
-		if err = os.Rename(downloadResult.Image.ID, filename); err != nil {
-			downloadResult.Error = err
-		} else {
-			downloadResult.FileName = filename
+			filename := "image" + strconv.Itoa(count) + "." + format
+			if err = os.Rename(downloadResult.Image.ID, filename); err != nil {
+				downloadResult.Error = err
+			} else {
+				downloadResult.FileName = filename
+			}
 		}
 		downloadResults = append(downloadResults, downloadResult)
 		count++
