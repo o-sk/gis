@@ -14,6 +14,7 @@ type Image struct {
 	Cite        string `json:"rh"`
 	Description string `json:"pt"`
 	Destination string `json:"ru"`
+	Extension   string `json:"ity"`
 	Source      string `json:"ou"`
 	Thumbnail   string `json:"tu"`
 }
