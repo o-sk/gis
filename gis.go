@@ -28,6 +28,12 @@ type Image struct {
 	Thumbnail   string `json:"tu"`
 }
 
+type DownloadRequest struct {
+	No           int
+	BaseFileName string
+	Image        Image
+}
+
 type DownloadResult struct {
 	FileName string
 	Image    Image
@@ -78,15 +84,15 @@ func downloadRequest(directory string, image Image) DownloadResult {
 }
 
 func Download(directory, filename string, images []Image) []DownloadResult {
-	download := func(done <-chan interface{}, imageStream <-chan Image) <-chan DownloadResult {
+	download := func(done <-chan interface{}, downloadRequestStream <-chan DownloadRequest) <-chan DownloadResult {
 		downloadStream := make(chan DownloadResult)
 		go func() {
 			defer close(downloadStream)
-			for image := range imageStream {
+			for dr := range downloadRequestStream {
 				select {
 				case <-done:
 					return
-				case downloadStream <- downloadRequest(directory, image):
+				case downloadStream <- downloadRequest(directory, dr.Image):
 				}
 			}
 		}()
@@ -137,10 +143,10 @@ func Download(directory, filename string, images []Image) []DownloadResult {
 	}
 
 	baseFileName := filepath.Join(directory, filename)
-	imageStream := make(chan Image, len(images))
-	defer close(imageStream)
-	for _, image := range images {
-		imageStream <- image
+	downloadRequestStream := make(chan DownloadRequest, len(images))
+	defer close(downloadRequestStream)
+	for i, image := range images {
+		downloadRequestStream <- DownloadRequest{No: i + 1, BaseFileName: baseFileName, Image: image}
 	}
 
 	done := make(chan interface{})
@@ -149,7 +155,7 @@ func Download(directory, filename string, images []Image) []DownloadResult {
 	numChannel := runtime.NumCPU()
 	downloaders := make([]<-chan DownloadResult, numChannel)
 	for i := 0; i < numChannel; i++ {
-		downloaders[i] = download(done, imageStream)
+		downloaders[i] = download(done, downloadRequestStream)
 	}
 	downloadResults := make([]DownloadResult, len(images))
 	count := 1
