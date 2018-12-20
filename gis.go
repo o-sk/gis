@@ -66,21 +66,31 @@ func Search(query string) ([]Image, error) {
 	return images, nil
 }
 
-func downloadRequest(directory string, image Image) DownloadResult {
-	response, err := http.Get(image.Source)
+func downloadRequest(dr DownloadRequest) DownloadResult {
+	response, err := http.Get(dr.Image.Source)
 	if err != nil {
-		return DownloadResult{FileName: "", Image: image, Error: err}
+		return DownloadResult{FileName: "", Image: dr.Image, Error: err}
 	}
 	defer response.Body.Close()
-	filename := filepath.Join(directory, image.ID)
-	file, err := os.Create(filename)
+	tmpFilename := dr.BaseFileName + strconv.Itoa(dr.No)
+	file, err := os.Create(tmpFilename)
 	if err != nil {
-		return DownloadResult{FileName: filename, Image: image, Error: err}
+		return DownloadResult{FileName: "", Image: dr.Image, Error: err}
 	}
 	defer file.Close()
-
 	io.Copy(file, response.Body)
-	return DownloadResult{FileName: filename, Image: image, Error: nil}
+
+	f, _ := os.Open(tmpFilename)
+	defer f.Close()
+	_, format, err := image.DecodeConfig(f)
+	if err != nil {
+		return DownloadResult{FileName: "", Image: dr.Image, Error: err}
+	}
+	filename := tmpFilename + "." + format
+	if err = os.Rename(tmpFilename, filename); err != nil {
+		return DownloadResult{FileName: tmpFilename, Image: dr.Image, Error: err}
+	}
+	return DownloadResult{FileName: filename, Image: dr.Image, Error: nil}
 }
 
 func Download(directory, filename string, images []Image) []DownloadResult {
@@ -92,7 +102,7 @@ func Download(directory, filename string, images []Image) []DownloadResult {
 				select {
 				case <-done:
 					return
-				case downloadStream <- downloadRequest(directory, dr.Image):
+				case downloadStream <- downloadRequest(dr):
 				}
 			}
 		}()
@@ -158,28 +168,8 @@ func Download(directory, filename string, images []Image) []DownloadResult {
 		downloaders[i] = download(done, downloadRequestStream)
 	}
 	downloadResults := make([]DownloadResult, len(images))
-	count := 1
 	for downloadResult := range take(done, fanIn(done, downloaders...), len(images)) {
-		if downloadResult.Error == nil {
-			var err error
-			format := downloadResult.Image.Extension
-			if format == "" {
-				f, _ := os.Open(downloadResult.Image.ID)
-				defer f.Close()
-				_, format, err = image.DecodeConfig(f)
-				if err != nil {
-					downloadResult.Error = err
-				}
-			}
-			fn := baseFileName + strconv.Itoa(count) + "." + format
-			if err = os.Rename(downloadResult.FileName, fn); err != nil {
-				downloadResult.Error = err
-			} else {
-				downloadResult.FileName = filename
-			}
-		}
 		downloadResults = append(downloadResults, downloadResult)
-		count++
 	}
 	return downloadResults
 }
