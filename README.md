@@ -1,4 +1,6 @@
 # gis
+[![CircleCI](https://circleci.com/gh/o-sk/gis/tree/master.svg?style=svg)](https://circleci.com/gh/o-sk/gis/tree/master)
+
 `gis` is a command to search for image by Google Image Search
 
 ## Installation
