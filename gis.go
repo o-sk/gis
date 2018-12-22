@@ -16,6 +16,8 @@ import (
 	"sync"
 
 	"github.com/PuerkitoBio/goquery"
+	_ "golang.org/x/image/bmp"
+	_ "golang.org/x/image/tiff"
 )
 
 type Image struct {
