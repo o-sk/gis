@@ -20,3 +20,14 @@ jobs:
           paths:
             - "/go/pkg/mod"
       - run: go test -v ./...
+workflows:
+  version: 2
+  nightly:
+    triggers:
+      - schedule:
+          cron: "0 15 * * *"
+          filters:
+            branches:
+              only: master
+    jobs:
+      - build
