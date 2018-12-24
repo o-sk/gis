@@ -53,6 +53,9 @@ func Search(query string) ([]Image, error) {
 	}
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36")
 	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
 	defer resp.Body.Close()
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
