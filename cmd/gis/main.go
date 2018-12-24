@@ -1,16 +1,35 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
-	"github.com/k0kubun/pp"
 	"github.com/o-sk/gis"
 	"github.com/urfave/cli"
 )
 
-func display(images []gis.Image) {
-	pp.Print(images)
+type json_image struct {
+	Source      string
+	Description string
+	Cite        string
+}
+
+func display(images []gis.Image) error {
+	is := make([]json_image, len(images))
+	for i, image := range images {
+		is[i] = json_image{
+			Source:      image.Source,
+			Description: image.Description,
+			Cite:        image.Cite,
+		}
+	}
+	j, err := json.Marshal(is)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("%s", j)
+	return nil
 }
 
 func main() {
@@ -77,13 +96,17 @@ func main() {
 		},
 	}
 
-	app.Action = func(conrext *cli.Context) error {
+	app.Action = func(context *cli.Context) error {
 		images, err := gis.Search(query)
 		if err != nil {
-			fmt.Errorf(err.Error())
+			fmt.Fprintf(context.App.Writer, err.Error())
 			return nil
 		}
-		display(images)
+		err = display(images)
+		if err != nil {
+			fmt.Fprintf(context.App.Writer, err.Error())
+			return nil
+		}
 		return nil
 	}
 	app.Run(os.Args)
