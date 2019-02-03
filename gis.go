@@ -98,16 +98,6 @@ func downloadRequest(dr DownloadRequest) DownloadResult {
 	return DownloadResult{FileName: filename, Image: dr.Image, Error: nil}
 }
 
-func SerialDownload(directory, filename string, images []Image) []DownloadResult {
-	baseFileName := filepath.Join(directory, filename)
-	downloadResults := make([]DownloadResult, len(images))
-	for i, image := range images {
-		dr := downloadRequest(DownloadRequest{No: i + 1, BaseFileName: baseFileName, Image: image})
-		downloadResults = append(downloadResults, dr)
-	}
-	return downloadResults
-}
-
 func Download(directory, filename string, images []Image) []DownloadResult {
 	download := func(done <-chan interface{}, downloadRequestStream <-chan DownloadRequest) <-chan DownloadResult {
 		downloadStream := make(chan DownloadResult)
