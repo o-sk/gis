@@ -1,6 +1,8 @@
 # gis
 
-`gis` is a command to search for image by Google Image Search
+~~`gis` is a command to search for image by Google Image Search~~
+
+`gis` is not work correctly
 
 ## Installation
 Use `go get` to install this package:
@@ -75,7 +77,7 @@ $ gis -q "猫" | jq
 ### Download command
 
 ``` bash
-$ gis download -h  
+$ gis download -h
 NAME:
    gis download - download image file
 
