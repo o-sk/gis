@@ -1,7 +1,9 @@
 # gis
 [![CircleCI](https://circleci.com/gh/o-sk/gis/tree/master.svg?style=svg)](https://circleci.com/gh/o-sk/gis/tree/master)
 
-`gis` is a module to search for image by scraping Google Image Search
+~~`gis` is a module to search for image by scraping Google Image Search~~
+
+`gis` is not work correctly
 
 ## Usage
 ```
